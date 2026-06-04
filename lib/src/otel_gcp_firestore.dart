@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_gcp_firestore_suppression.dart';
 
@@ -48,46 +47,60 @@ Future<T> tracedGcpFirestore<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_gcp_firestore');
   final span = t.startSpan('firestore $operation', kind: SpanKind.client);
   try {
-    span.setStringAttribute('db.system.name', 'firestore');
-    span.setStringAttribute('gcp.service', 'firestore');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('db.system.name', 'firestore')]));
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('gcp.service', 'firestore')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.project != null) {
-        span.setStringAttribute('gcp.project.id', res.project!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('gcp.project.id', res.project!)]));
       }
       if (res.database != null) {
-        span.setStringAttribute('db.namespace', res.database!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('db.namespace', res.database!)]));
       }
       if (res.collection != null) {
-        span.setStringAttribute('db.collection.name', res.collection!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('db.collection.name', res.collection!)]));
       }
       if (res.documentId != null) {
-        span.setStringAttribute('gcp.firestore.document.id', res.documentId!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString('gcp.firestore.document.id', res.documentId!)
+        ]));
       }
       if (res.documentCount != null) {
-        span.setIntAttribute(
-          'gcp.firestore.document.count',
-          res.documentCount!,
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeInt(
+            'gcp.firestore.document.count',
+            res.documentCount!,
+          )
+        ]));
       }
       if (res.scannedCount != null) {
-        span.setIntAttribute('gcp.firestore.scanned_count', res.scannedCount!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeInt('gcp.firestore.scanned_count', res.scannedCount!)
+        ]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('firestore.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('firestore.error.code', res.errorCode!)]));
       }
-      final fail =
-          res.errorCode != null ||
+      final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-          ErrorResource.errorType.key,
-          res.errorCode ?? 'firestore.error',
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            ErrorResource.errorType.key,
+            res.errorCode ?? 'firestore.error',
+          )
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
